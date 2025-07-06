@@ -36,12 +36,13 @@ class Game:
                 if event.type == pygame.QUIT:
                     self.running = False
 
+            self.clock.tick(60)
+
     def start_game(self, player):
         self.level = Level(level_number=1)
 
-        # Define o caminho do spritesheet do player
         if player == 1:
-            spritesheet_path = './assets/player_spritesheet.png'  # ajusta o caminho conforme seu arquivo
+            spritesheet_path = './assets/player_spritesheet.png'
         else:
             spritesheet_path = './assets/player2_spritesheet.png'
 
@@ -49,20 +50,23 @@ class Game:
 
         running = True
         while running:
+            self.clock.tick(60)
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
                     self.running = False
 
             keys = pygame.key.get_pressed()
-            self.player.handle_input(keys)
+            jump_pressed = keys[pygame.K_SPACE]
 
             self.level.update()
+            self.player.update(jump_pressed)
+
             self.window.fill((0, 0, 0))
             self.level.draw(self.window)
             self.player.draw(self.window)
             pygame.display.flip()
-            self.clock.tick(60)
 
         self.level.stop_music()
         self.state = "menu"
