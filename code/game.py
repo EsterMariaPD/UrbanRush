@@ -96,8 +96,8 @@ class Game:
         self.key_timer = pygame.time.get_ticks()
         self.collected_keys = 0
 
-        self.obstacle_speed = 6
-        self.key_speed = 4
+        self.obstacle_speed = 5
+        self.key_speed = 5
 
         pygame.mixer.music.stop()
         self.load_level_music(self.level_number)
@@ -123,7 +123,7 @@ class Game:
                 self.spawn_obstacle()
                 self.obstacle_timer = now
 
-            if now - self.key_timer > 2000:
+            if now - self.key_timer > 10000:
                 self.spawn_key()
                 self.key_timer = now
 
