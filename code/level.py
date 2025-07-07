@@ -2,63 +2,44 @@ import pygame
 import os
 from code.const import WIN_WIDTH, WIN_HEIGHT
 
-
-class BackgroundLayer:
-    def __init__(self, image, speed, position):
-        self.image = pygame.transform.scale(image, (WIN_WIDTH, WIN_HEIGHT))
-        self.speed = speed
-        self.x = position
-
-    def update(self):
-        self.x -= self.speed
-        if self.x <= -WIN_WIDTH:
-            self.x += WIN_WIDTH * 2  # loop contínuo para duas imagens lado a lado
-
-    def draw(self, surface):
-        surface.blit(self.image, (self.x, 0))
-
-
 class Level:
-    def __init__(self, level_number: int, assets_path='./assets'):
+    def __init__(self, level_number):
         self.level_number = level_number
-        self.assets_path = assets_path
-        self.layers = []
+        self.scroll = 0
 
-        prefix = f"Level{level_number}Bg"
-        self.music_path = os.path.join(assets_path, f"Level{level_number}.wav")
+        self.backgrounds = []
+        self.scroll_speeds = []
 
-        # Carrega todas as imagens do fundo disponíveis
-        images = []
-        for file in sorted(os.listdir(assets_path)):
-            if file.startswith(prefix) and file.endswith('.png'):
-                images.append(os.path.join(assets_path, file))
+        assets_folder = './assets/'
 
-        # Inicializa o mixer (caso ainda não esteja)
-        if not pygame.mixer.get_init():
-            pygame.mixer.init()
+        i = 0
+        while True:
+            filename = f'Level{level_number}Bg{i}.png'
+            filepath = os.path.join(assets_folder, filename)
+            if os.path.isfile(filepath):
+                img = pygame.image.load(filepath).convert_alpha()
+                img = pygame.transform.scale(img, (WIN_WIDTH, WIN_HEIGHT))
+                self.backgrounds.append(img)
 
-        # Toca a música do level
-        try:
-            pygame.mixer.music.load(self.music_path)
-            pygame.mixer.music.set_volume(0.3)
-            pygame.mixer.music.play(-1)
-        except pygame.error as e:
-            print(f"[WARN] Não foi possível carregar a música: {self.music_path} - {e}")
+                # Define velocidade de scroll por camada (ajuste conforme quiser)
+                speed = 0.3 + i * 0.1
+                self.scroll_speeds.append(speed)
 
-        # Cria camadas em pares para parallax
-        for i, img_path in enumerate(images):
-            image = pygame.image.load(img_path).convert_alpha()
-            speed = 1 + i  # velocidade aumenta por camada
-            self.layers.append(BackgroundLayer(image, speed, 0))
-            self.layers.append(BackgroundLayer(image, speed, WIN_WIDTH))
+                i += 1
+            else:
+                break
 
     def update(self):
-        for layer in self.layers:
-            layer.update()
+        # Ajuste a velocidade geral conforme seu jogo
+        self.scroll += 2
 
     def draw(self, surface):
-        for layer in self.layers:
-            layer.draw(surface)
+        for i, bg in enumerate(self.backgrounds):
+            speed = self.scroll_speeds[i]
+            width = bg.get_width()
+            x_pos = - (self.scroll * speed) % width
+            surface.blit(bg, (x_pos, 0))
+            surface.blit(bg, (x_pos - width, 0))
 
     def stop_music(self):
         pygame.mixer.music.stop()
