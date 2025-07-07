@@ -10,6 +10,6 @@ COLOR_TEXT_HIGHLIGHT = (180, 180, 180)
 MENU_OPTIONS = [
     "PLAYER 1",
     "PLAYER 2",
-    "SCORE",
-    "SAIR"
+    "HOW TO PLAY",
+    "EXIT"
 ]

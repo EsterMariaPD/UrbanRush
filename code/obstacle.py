@@ -1,5 +1,5 @@
 import pygame
-from .const import WIN_WIDTH, WIN_HEIGHT
+from code.const import WIN_WIDTH, WIN_HEIGHT
 
 class Obstacle(pygame.sprite.Sprite):
     def __init__(self, image_path, is_flying):
@@ -35,8 +35,11 @@ class Obstacle(pygame.sprite.Sprite):
 
         self.rect.left = WIN_WIDTH
 
-    def update(self):
-        self.rect.x -= self.speed
+    def update(self, speed=None):
+        if speed is not None:
+            self.rect.x -= speed
+        else:
+            self.rect.x -= self.speed
 
         if self.is_flying:
             self.frame_counter += self.animation_speed

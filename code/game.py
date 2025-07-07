@@ -28,16 +28,19 @@ class Game:
         self.level = None
 
         self.obstacles = pygame.sprite.Group()
-        self.obstacle_timer = 0
-        self.obstacle_interval = 1500
-
         self.keys = pygame.sprite.Group()
+
+        self.obstacle_timer = 0
         self.key_timer = 0
+
+        self.obstacle_interval = 1500
+        self.obstacle_speed = 6
+        self.key_speed = 4
+
         self.collected_keys = 0
         self.keys_to_collect = 3
         self.level_number = 1
 
-        # Sons
         self.menu_music_path = './assets/Menu.wav'
         self.game_over_sound = pygame.mixer.Sound('./assets/game_over.wav')
         self.key_sound = pygame.mixer.Sound('./assets/key_collect.wav')
@@ -66,14 +69,14 @@ class Game:
                     pygame.mixer.music.play(-1)
 
                 choice = self.menu.run()
-                if choice == "SAIR" or choice == "exit":
+                if choice == "EXIT":
                     self.running = False
                 elif choice == "PLAYER 1":
                     self.start_game(player=1)
                 elif choice == "PLAYER 2":
                     self.start_game(player=2)
-                elif choice == "SCORE":
-                    print("Mostrar placar futuramente!")
+                elif choice == "HOW TO PLAY":
+                    self.display_how_to_play()
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -93,13 +96,18 @@ class Game:
         self.key_timer = pygame.time.get_ticks()
         self.collected_keys = 0
 
+        self.obstacle_speed = 6
+        self.key_speed = 4
+
         pygame.mixer.music.stop()
         self.load_level_music(self.level_number)
 
-        self.running_game = True  # flag para controlar o loop do jogo
+        self.running_game = True
 
         while self.running_game:
             dt = self.clock.tick(60)
+            self.obstacle_speed += 0.001
+            self.key_speed += 0.001
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -119,8 +127,8 @@ class Game:
                 self.spawn_key()
                 self.key_timer = now
 
-            self.obstacles.update()
-            self.keys.update()
+            self.obstacles.update(self.obstacle_speed)
+            self.keys.update(self.key_speed)
 
             Collision.check_obstacle_collision(self.player, self.obstacles)
             Collision.check_star_collection(self.player, self.keys, self.on_key_collected)
@@ -158,7 +166,6 @@ class Game:
         if self.collected_keys >= self.keys_to_collect:
             self.level_number += 1
 
-            # Verifica se existe background para o próximo level
             next_level_bg_path = f'./assets/Level{self.level_number}Bg0.png'
             if not os.path.exists(next_level_bg_path):
                 self.display_demo_warning()
@@ -166,7 +173,7 @@ class Game:
                 pygame.mixer.music.load(self.menu_music_path)
                 pygame.mixer.music.play(-1)
 
-                self.running_game = False  # Para sair do loop do jogo e voltar ao menu
+                self.running_game = False
                 self.state = "menu"
                 return
 
@@ -176,6 +183,9 @@ class Game:
             self.keys.empty()
             self.obstacles.empty()
             self.collected_keys = 0
+            self.player.health = 3
+            self.obstacle_speed = 6
+            self.key_speed = 4
             pygame.mixer.music.stop()
             self.load_level_music(self.level_number)
 
@@ -298,3 +308,38 @@ class Game:
                 self.window.blit(prompt_text, rect_prompt)
 
             pygame.display.flip()
+
+    def display_how_to_play(self):
+        font = pygame.font.Font('./assets/04B_30__.TTF', 17)
+        lines = [
+            "HOW TO PLAY:",
+            "- Press SPACE to jump",
+            "- Collect 3 keys to advance to the next level",
+            "- Avoid ground and flying obstacles",
+            "- You have 3 lives. If you lose all, it's Game Over.",
+            "- Press any key to return to menu"
+        ]
+
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                    running = False
+                elif event.type == pygame.KEYDOWN:
+                    running = False
+
+            self.window.fill((0, 0, 0))
+            overlay = pygame.Surface((WIN_WIDTH, WIN_HEIGHT))
+            overlay.set_alpha(180)
+            overlay.fill((0, 0, 0))
+            self.window.blit(overlay, (0, 0))
+
+            for i, line in enumerate(lines):
+                color = (255, 255, 255) if i == 0 else (200, 200, 200)
+                text = font.render(line, True, color)
+                rect = text.get_rect(center=(WIN_WIDTH // 2, 100 + i * 40))
+                self.window.blit(text, rect)
+
+            pygame.display.flip()
+            self.clock.tick(30)
