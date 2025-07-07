@@ -1,6 +1,5 @@
 import pygame
-from code.const import WIN_WIDTH, WIN_HEIGHT
-
+from .const import WIN_WIDTH, WIN_HEIGHT
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, player_id, spritesheet_path):
@@ -30,41 +29,46 @@ class Player(pygame.sprite.Sprite):
         self.frame_counter = 0
         self.animation_speed = 0.2
 
-        self.jump_speed = -11   # pulo maior para salto mais alto
+        self.jump_speed = -11
         self.gravity = 0.9
         self.vel_y = 0
         self.is_jumping = False
         self.jump_timer = 0
-        self.jump_max_time = 30  # pode segurar o pulo por mais tempo (frames)
+        self.jump_max_time = 30
+
+        self.health = 3
+        self.damage_cooldown = 0  # invulnerável após dano
+
+        self.visible = True  # Para piscar visualmente
+
+        # Carrega o som de dano (coloque seu arquivo .wav em assets)
+        try:
+            self.sound_damage = pygame.mixer.Sound('./assets/damage.wav')
+        except pygame.error as e:
+            print(f"Erro ao carregar som de dano: {e}")
+            self.sound_damage = None
 
     def update(self, jump_pressed):
-        # Controle do pulo contínuo por pressão da tecla espaço
         if jump_pressed:
             if not self.is_jumping:
-                # Inicia o pulo se não estiver pulando
                 self.is_jumping = True
                 self.vel_y = self.jump_speed
                 self.jump_timer = 0
             elif self.jump_timer < self.jump_max_time:
-                # Segura o pulo, desacelerando a gravidade enquanto segura a tecla
                 self.vel_y += self.gravity / 3
                 self.jump_timer += 1
             else:
-                # Após tempo máximo, aplica gravidade normal
                 self.vel_y += self.gravity
         else:
-            # Soltou a tecla, aplica gravidade normal
             self.vel_y += self.gravity
 
         self.rect.y += self.vel_y
 
-        # Checa o chão
         if self.rect.bottom >= WIN_HEIGHT - 10:
             self.rect.bottom = WIN_HEIGHT - 10
             self.is_jumping = False
             self.vel_y = 0
 
-        # Animação: congela no frame 5 enquanto estiver pulando
         if self.is_jumping:
             self.image = self.frames[3]
         else:
@@ -74,5 +78,24 @@ class Player(pygame.sprite.Sprite):
             self.current_frame = int(self.frame_counter)
             self.image = self.frames[self.current_frame]
 
+        # Piscar quando em cooldown
+        if self.damage_cooldown > 0:
+            self.damage_cooldown -= 1
+            if (self.damage_cooldown // 5) % 2 == 0:
+                self.visible = False
+            else:
+                self.visible = True
+        else:
+            self.visible = True
+
+    def take_damage(self):
+        if self.damage_cooldown == 0 and self.health > 0:
+            self.health -= 1
+            self.damage_cooldown = 60  # 1 segundo invulnerável
+            if self.sound_damage:
+                self.sound_damage.play()
+            print(f"Player {self.id} levou dano! Life restante: {self.health}")
+
     def draw(self, surface):
-        surface.blit(self.image, self.rect)
+        if self.visible:
+            surface.blit(self.image, self.rect)
