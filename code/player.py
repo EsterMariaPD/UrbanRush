@@ -1,8 +1,8 @@
 import pygame
-from .const import WIN_WIDTH, WIN_HEIGHT
+from code.const import WIN_HEIGHT
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, player_id, spritesheet_path):
+    def __init__(self, player_id, spritesheet_path, damage_sound=None):
         super().__init__()
         self.id = player_id
         self.spritesheet = pygame.image.load(spritesheet_path).convert_alpha()
@@ -26,14 +26,6 @@ class Player(pygame.sprite.Sprite):
         self.rect.bottom = WIN_HEIGHT - 10
         self.rect.left = 50
 
-        # Hitbox menor (ajuste os valores para encaixar)
-        self.hitbox = pygame.Rect(
-            self.rect.left + 10,  # desloca 10px da esquerda
-            self.rect.top + 10,   # desloca 10px de cima
-            self.rect.width - 20, # reduz 20px na largura total
-            self.rect.height - 15 # reduz 15px na altura total
-        )
-
         self.frame_counter = 0
         self.animation_speed = 0.2
 
@@ -45,15 +37,15 @@ class Player(pygame.sprite.Sprite):
         self.jump_max_time = 30
 
         self.health = 3
-        self.damage_cooldown = 0
+        self.damage_cooldown = 0  # frames para invulnerabilidade
 
-        self.visible = True
+        self.damage_sound = damage_sound  # som do dano recebido
 
-        try:
-            self.sound_damage = pygame.mixer.Sound('./assets/damage.wav')
-        except pygame.error as e:
-            print(f"Erro ao carregar som de dano: {e}")
-            self.sound_damage = None
+        # Hitbox menor e centralizada
+        hitbox_width = int(self.rect.width * 0.6)
+        hitbox_height = int(self.rect.height * 0.8)
+        self.hitbox = pygame.Rect(0, 0, hitbox_width, hitbox_height)
+        self.hitbox.center = self.rect.center
 
     def update(self, jump_pressed):
         if jump_pressed:
@@ -71,13 +63,13 @@ class Player(pygame.sprite.Sprite):
 
         self.rect.y += self.vel_y
 
-        # Atualiza a hitbox junto com o rect
-        self.hitbox.topleft = (self.rect.left + 10, self.rect.top + 10)
-
         if self.rect.bottom >= WIN_HEIGHT - 10:
             self.rect.bottom = WIN_HEIGHT - 10
             self.is_jumping = False
             self.vel_y = 0
+
+        # Atualiza hitbox centralizada
+        self.hitbox.center = self.rect.center
 
         if self.is_jumping:
             self.image = self.frames[3]
@@ -90,23 +82,20 @@ class Player(pygame.sprite.Sprite):
 
         if self.damage_cooldown > 0:
             self.damage_cooldown -= 1
-            if (self.damage_cooldown // 5) % 2 == 0:
-                self.visible = False
-            else:
-                self.visible = True
-        else:
-            self.visible = True
 
     def take_damage(self):
         if self.damage_cooldown == 0 and self.health > 0:
             self.health -= 1
-            self.damage_cooldown = 60
-            if self.sound_damage:
-                self.sound_damage.play()
-            print(f"Player {self.id} levou dano! Life restante: {self.health}")
+            self.damage_cooldown = 60  # 1 segundo invulnerável (60 FPS)
+            if self.damage_sound:
+                self.damage_sound.play()
+            print(f"Player {self.id} levou dano! Vida restante: {self.health}")
 
     def draw(self, surface):
-        if self.visible:
+        # Piscar durante o cooldown de dano
+        if self.damage_cooldown > 0:
+            # Pisca a cada 4 frames
+            if (self.damage_cooldown // 4) % 2 == 0:
+                surface.blit(self.image, self.rect)
+        else:
             surface.blit(self.image, self.rect)
-            # Debug: desenha hitbox em vermelho (apague ou comente depois)
-            # pygame.draw.rect(surface, (255, 0, 0), self.hitbox, 1)
