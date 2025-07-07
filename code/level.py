@@ -6,6 +6,7 @@ class Level:
     def __init__(self, level_number):
         self.level_number = level_number
         self.scroll = 0
+        self.scroll_speed = 5  # velocidade geral aumentada para um rush mais acelerado
 
         self.backgrounds = []
         self.scroll_speeds = []
@@ -31,7 +32,7 @@ class Level:
 
     def update(self):
         # Ajuste a velocidade geral conforme seu jogo
-        self.scroll += 2
+        self.scroll += self.scroll_speed
 
     def draw(self, surface):
         for i, bg in enumerate(self.backgrounds):

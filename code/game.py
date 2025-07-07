@@ -1,5 +1,6 @@
 import pygame
 import random
+import os
 from code.const import WIN_WIDTH, WIN_HEIGHT
 from code.menu import Menu
 from code.level import Level
@@ -38,14 +39,24 @@ class Game:
 
         # Sons
         self.menu_music_path = './assets/Menu.wav'
-        self.level_music_path = './assets/Level1.wav'
         self.game_over_sound = pygame.mixer.Sound('./assets/game_over.wav')
         self.key_sound = pygame.mixer.Sound('./assets/key_collect.wav')
         self.damage_sound = pygame.mixer.Sound('./assets/damage.wav')
+        self.level_up_sound = pygame.mixer.Sound('./assets/level_up.wav')
 
         pygame.mixer.music.load(self.menu_music_path)
         pygame.mixer.music.set_volume(0.5)
         pygame.mixer.music.play(-1)
+
+    def load_level_music(self, level_number):
+        music_path = f'./assets/Level{level_number}.wav'
+        try:
+            pygame.mixer.music.load(music_path)
+            pygame.mixer.music.set_volume(0.5)
+            pygame.mixer.music.play(-1)
+            print(f"[INFO] Tocando música da fase {level_number}")
+        except pygame.error as e:
+            print(f"[ERRO] Música da fase {level_number} não encontrada: {e}")
 
     def run(self):
         while self.running:
@@ -57,9 +68,9 @@ class Game:
                 choice = self.menu.run()
                 if choice == "SAIR" or choice == "exit":
                     self.running = False
-                elif choice == "JOGAR COM PLAYER 1":
+                elif choice == "PLAYER 1":
                     self.start_game(player=1)
-                elif choice == "JOGAR COM PLAYER 2":
+                elif choice == "PLAYER 2":
                     self.start_game(player=2)
                 elif choice == "SCORE":
                     print("Mostrar placar futuramente!")
@@ -83,17 +94,16 @@ class Game:
         self.collected_keys = 0
 
         pygame.mixer.music.stop()
-        pygame.mixer.music.load(self.level_music_path)
-        pygame.mixer.music.set_volume(0.5)
-        pygame.mixer.music.play(-1)
+        self.load_level_music(self.level_number)
 
-        running = True
-        while running:
+        self.running_game = True  # flag para controlar o loop do jogo
+
+        while self.running_game:
             dt = self.clock.tick(60)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    running = False
+                    self.running_game = False
                     self.running = False
 
             keys_pressed = pygame.key.get_pressed()
@@ -105,7 +115,7 @@ class Game:
                 self.spawn_obstacle()
                 self.obstacle_timer = now
 
-            if now - self.key_timer > 10000:
+            if now - self.key_timer > 2000:
                 self.spawn_key()
                 self.key_timer = now
 
@@ -132,7 +142,7 @@ class Game:
                 self.game_over_sound.play()
                 self.display_game_over()
                 pygame.time.delay(2000)
-                running = False
+                self.running_game = False
                 self.state = "menu"
 
             pygame.display.flip()
@@ -146,12 +156,28 @@ class Game:
         print(f"Chaves coletadas: {self.collected_keys}")
 
         if self.collected_keys >= self.keys_to_collect:
-            print("Mudando para próximo nível!")
             self.level_number += 1
+
+            # Verifica se existe background para o próximo level
+            next_level_bg_path = f'./assets/Level{self.level_number}Bg0.png'
+            if not os.path.exists(next_level_bg_path):
+                self.display_demo_warning()
+                self.level.stop_music()
+                pygame.mixer.music.load(self.menu_music_path)
+                pygame.mixer.music.play(-1)
+
+                self.running_game = False  # Para sair do loop do jogo e voltar ao menu
+                self.state = "menu"
+                return
+
+            print(f"Mudando para próximo nível: {self.level_number}")
+            self.display_level_transition(f"LEVEL {self.level_number}")
             self.level = Level(level_number=self.level_number)
             self.keys.empty()
             self.obstacles.empty()
             self.collected_keys = 0
+            pygame.mixer.music.stop()
+            self.load_level_music(self.level_number)
 
     def spawn_obstacle(self):
         is_flying = random.random() < 0.3
@@ -196,3 +222,79 @@ class Game:
             if blink_timer > 200:
                 show_text = not show_text
                 blink_timer = 0
+
+    def display_level_transition(self, text):
+        blink_timer = 0
+        blink_duration = 2000
+        show_text = True
+        start_time = pygame.time.get_ticks()
+        self.level_up_sound.play()
+
+        while pygame.time.get_ticks() - start_time < blink_duration:
+            self.window.fill((0, 0, 0))
+
+            overlay = pygame.Surface((WIN_WIDTH, WIN_HEIGHT))
+            overlay.set_alpha(180)
+            overlay.fill((0, 0, 0))
+            self.window.blit(overlay, (0, 0))
+
+            if show_text:
+                level_text = self.pixel_font.render(text, True, (255, 255, 255))
+                rect = level_text.get_rect(center=(WIN_WIDTH // 2, WIN_HEIGHT // 2))
+                self.window.blit(level_text, rect)
+
+            pygame.display.flip()
+
+            blink_timer += self.clock.tick(5)
+            if blink_timer > 300:
+                show_text = not show_text
+                blink_timer = 0
+
+    def display_demo_warning(self):
+        small_font = pygame.font.Font('./assets/04B_30__.TTF', 22)
+        message1 = "LEVEL 3 - LOCKED"
+        message2 = "This is a DEMO version of the game."
+        message3 = "More levels coming soon!"
+        prompt = "Press any key to return to menu"
+
+        running = True
+        show_text = True
+        blink_timer = 0
+        clock = pygame.time.Clock()
+
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                    running = False
+                elif event.type == pygame.KEYDOWN:
+                    running = False
+
+            self.window.fill((0, 0, 0))
+            overlay = pygame.Surface((WIN_WIDTH, WIN_HEIGHT))
+            overlay.set_alpha(180)
+            overlay.fill((0, 0, 0))
+            self.window.blit(overlay, (0, 0))
+
+            blink_timer += clock.tick(30)
+            if blink_timer > 500:
+                show_text = not show_text
+                blink_timer = 0
+
+            if show_text:
+                text1 = small_font.render(message1, True, (255, 255, 0))
+                text2 = small_font.render(message2, True, (255, 255, 255))
+                text3 = small_font.render(message3, True, (200, 200, 200))
+                prompt_text = small_font.render(prompt, True, (180, 180, 180))
+
+                rect1 = text1.get_rect(center=(WIN_WIDTH // 2, WIN_HEIGHT // 2 - 50))
+                rect2 = text2.get_rect(center=(WIN_WIDTH // 2, WIN_HEIGHT // 2 - 15))
+                rect3 = text3.get_rect(center=(WIN_WIDTH // 2, WIN_HEIGHT // 2 + 20))
+                rect_prompt = prompt_text.get_rect(center=(WIN_WIDTH // 2, WIN_HEIGHT // 2 + 70))
+
+                self.window.blit(text1, rect1)
+                self.window.blit(text2, rect2)
+                self.window.blit(text3, rect3)
+                self.window.blit(prompt_text, rect_prompt)
+
+            pygame.display.flip()
