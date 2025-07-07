@@ -75,8 +75,11 @@ class Game:
 
             self.obstacles.update()
 
-            if pygame.sprite.spritecollide(self.player, self.obstacles, False):
-                self.player.take_damage()
+            # Colisão usando hitbox menor do player
+            for obstacle in self.obstacles:
+                if obstacle.rect.colliderect(self.player.hitbox):
+                    self.player.take_damage()
+                    break  # Evita múltiplos danos no mesmo frame
 
             for obs in self.obstacles:
                 if obs.rect.right < 0:

@@ -26,6 +26,14 @@ class Player(pygame.sprite.Sprite):
         self.rect.bottom = WIN_HEIGHT - 10
         self.rect.left = 50
 
+        # Hitbox menor (ajuste os valores para encaixar)
+        self.hitbox = pygame.Rect(
+            self.rect.left + 10,  # desloca 10px da esquerda
+            self.rect.top + 10,   # desloca 10px de cima
+            self.rect.width - 20, # reduz 20px na largura total
+            self.rect.height - 15 # reduz 15px na altura total
+        )
+
         self.frame_counter = 0
         self.animation_speed = 0.2
 
@@ -37,11 +45,10 @@ class Player(pygame.sprite.Sprite):
         self.jump_max_time = 30
 
         self.health = 3
-        self.damage_cooldown = 0  # invulnerável após dano
+        self.damage_cooldown = 0
 
-        self.visible = True  # Para piscar visualmente
+        self.visible = True
 
-        # Carrega o som de dano (coloque seu arquivo .wav em assets)
         try:
             self.sound_damage = pygame.mixer.Sound('./assets/damage.wav')
         except pygame.error as e:
@@ -64,6 +71,9 @@ class Player(pygame.sprite.Sprite):
 
         self.rect.y += self.vel_y
 
+        # Atualiza a hitbox junto com o rect
+        self.hitbox.topleft = (self.rect.left + 10, self.rect.top + 10)
+
         if self.rect.bottom >= WIN_HEIGHT - 10:
             self.rect.bottom = WIN_HEIGHT - 10
             self.is_jumping = False
@@ -78,7 +88,6 @@ class Player(pygame.sprite.Sprite):
             self.current_frame = int(self.frame_counter)
             self.image = self.frames[self.current_frame]
 
-        # Piscar quando em cooldown
         if self.damage_cooldown > 0:
             self.damage_cooldown -= 1
             if (self.damage_cooldown // 5) % 2 == 0:
@@ -91,7 +100,7 @@ class Player(pygame.sprite.Sprite):
     def take_damage(self):
         if self.damage_cooldown == 0 and self.health > 0:
             self.health -= 1
-            self.damage_cooldown = 60  # 1 segundo invulnerável
+            self.damage_cooldown = 60
             if self.sound_damage:
                 self.sound_damage.play()
             print(f"Player {self.id} levou dano! Life restante: {self.health}")
@@ -99,3 +108,5 @@ class Player(pygame.sprite.Sprite):
     def draw(self, surface):
         if self.visible:
             surface.blit(self.image, self.rect)
+            # Debug: desenha hitbox em vermelho (apague ou comente depois)
+            # pygame.draw.rect(surface, (255, 0, 0), self.hitbox, 1)
