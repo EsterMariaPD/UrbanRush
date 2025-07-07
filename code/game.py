@@ -69,7 +69,7 @@ class Game:
                     pygame.mixer.music.play(-1)
 
                 choice = self.menu.run()
-                if choice == "EXIT":
+                if choice == "EXIT" or choice == "exit":
                     self.running = False
                 elif choice == "PLAYER 1":
                     self.start_game(player=1)
