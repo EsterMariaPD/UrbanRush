@@ -55,7 +55,7 @@ class Menu:
                         menu_option = (menu_option + 1) % len(MENU_OPTIONS)
                     elif event.key == pygame.K_UP:
                         menu_option = (menu_option - 1) % len(MENU_OPTIONS)
-                    elif event.key == pygame.K_RETURN:
+                    elif event.key in [pygame.K_RETURN, pygame.K_KP_ENTER]:
                         pygame.mixer.music.stop()
                         return MENU_OPTIONS[menu_option]
 
